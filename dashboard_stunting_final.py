@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 # PAGE CONFIGURATION
 # ============================================================================
 st.set_page_config(
-    page_title="Stunting Risk Explorer - Jawa Barat 2024",
+    page_title="Kasus Stunting Jawa Barat 2024",
     page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -90,7 +90,7 @@ def load_data():
     
     # Klasifikasi WHO (1995) Technical Report Series No. 854, Table 39
     # Low (<20%), Medium (20-29%), High (30-39%), Very High (>=40%)
-    def get_risk_level(val):
+    def get_tingkat_keparahan(val):
         if pd.isna(val): 
             return "No Data"
         elif val < 20: 
@@ -102,7 +102,7 @@ def load_data():
         else: 
             return "Sangat Tinggi"         # Very High
     
-    df['risk_level'] = df['persen_stunting'].apply(get_risk_level)
+    df['tingkat_keparahan'] = df['persen_stunting'].apply(get_tingkat_keparahan)
     
     return df
 
@@ -174,9 +174,9 @@ def format_value(val, decimal=1):
         return "N/A"
     return f"{val:,.{decimal}f}"
 
-def get_text_color(risk_level):
+def get_text_color(tingkat_keparahan):
     """Get appropriate text color for background"""
-    if risk_level in ["Rendah", "Sedang"]:
+    if tingkat_keparahan in ["Rendah", "Sedang"]:
         return "#1f2937"
     return "#ffffff"
 
@@ -248,8 +248,7 @@ def run_ols_model(df, predictors, y_var='persen_stunting'):
 # MAIN APPLICATION
 # ============================================================================
 def main():
-    st.title("Stunting Risk Explorer - Jawa Barat 2024")
-    st.caption("Dashboard Analisis Spasial Prevalensi Stunting Balita")
+    st.title("Kasus Stunting Jawa Barat 2024")
     
     # Load data with error handling
     try:
@@ -282,7 +281,7 @@ def main():
     # TABS
     # =========================================================================
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "Peta", "Profil Wilayah", "Distribusi Risiko", 
+        "Peta", "Profil Wilayah", "Distribusi Kasus", 
         "Model Statistik", "Data", "Metodologi"
     ])
     
@@ -291,30 +290,30 @@ def main():
     # =========================================================================
     with tab1:
         # Metrics
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2 = st.columns(2)
         
         total_stunting = df['jumlah_stunting'].sum()
         mean_prev = df['persen_stunting'].mean()
-        high_risk = df[df['risk_level'].isin(['Tinggi', 'Sangat Tinggi'])].shape[0]
-        low_risk = df[df['risk_level'] == 'Rendah'].shape[0]
+        high_risk = df[df['tingkat_keparahan'].isin(['Tinggi', 'Sangat Tinggi'])].shape[0]
+        low_risk = df[df['tingkat_keparahan'] == 'Rendah'].shape[0]
         
         with col1:
             st.metric("Total Kasus", f"{int(total_stunting):,}")
         with col2:
             st.metric("Rata-rata Prevalensi", f"{mean_prev:.1f}%")
-        with col3:
-            st.metric("Risiko Tinggi", f"{high_risk} wilayah")
-        with col4:
-            st.metric("Risiko Rendah", f"{low_risk} wilayah")
+        # with col3:
+        #     st.metric("Tinggi", f"{high_risk} wilayah")
+        # with col4:
+        #     st.metric("Rendah", f"{low_risk} wilayah")
         
-        st.subheader("Peta Distribusi Risiko Stunting")
+        st.subheader("Peta Distribusi Kasus Stunting")
         
         fig = px.choropleth(
             df,
             geojson=geojson,
             locations='kode_kabkota',
             featureidkey='properties.kode_kabkota',
-            color='risk_level',
+            color='tingkat_keparahan',
             hover_name='nama_kabkota',
             hover_data={
                 'kode_kabkota': False,
@@ -322,7 +321,7 @@ def main():
                 'jumlah_stunting': ':,.0f'
             },
             color_discrete_map=RISK_COLORS,
-            category_orders={'risk_level': ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi']}
+            category_orders={'tingkat_keparahan': ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi']}
         )
         
         fig.update_geos(fitbounds="locations", visible=False)
@@ -346,9 +345,9 @@ def main():
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            st.subheader("Profil Risiko")
+            st.subheader("ProfiL Wilayah")
             
-            risk = kab_data['risk_level']
+            risk = kab_data['tingkat_keparahan']
             color = RISK_COLORS.get(risk, "#9E9E9E")
             text_color = get_text_color(risk)
             
@@ -408,9 +407,9 @@ def main():
             x='persen_stunting',
             y='nama_kabkota',
             orientation='h',
-            color='risk_level',
+            color='tingkat_keparahan',
             color_discrete_map=RISK_COLORS,
-            category_orders={'risk_level': ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi']}
+            category_orders={'tingkat_keparahan': ['Rendah', 'Sedang', 'Tinggi', 'Sangat Tinggi']}
         )
         
         # Highlight selected
@@ -434,15 +433,15 @@ def main():
         st.plotly_chart(fig_bar, use_container_width=True)
     
     # =========================================================================
-    # TAB 3: DISTRIBUSI RISIKO
+    # TAB 3: DISTRIBUSI KASUS
     # =========================================================================
     with tab3:
-        st.subheader("Distribusi Kategori Risiko")
+        st.subheader("Distribusi Kategori Keparahan")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            risk_counts = df['risk_level'].value_counts()
+            risk_counts = df['tingkat_keparahan'].value_counts()
             
             fig_pie = px.pie(
                 values=risk_counts.values,
@@ -470,10 +469,10 @@ def main():
         
         with col1:
             st.markdown("**5 Prevalensi Tertinggi**")
-            top5 = df.nlargest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'risk_level']]
+            top5 = df.nlargest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'tingkat_keparahan']]
             for i, (_, row) in enumerate(top5.iterrows(), 1):
-                color = RISK_COLORS.get(row['risk_level'], "#9E9E9E")
-                text_col = get_text_color(row['risk_level'])
+                color = RISK_COLORS.get(row['tingkat_keparahan'], "#9E9E9E")
+                text_col = get_text_color(row['tingkat_keparahan'])
                 st.markdown(f"""
                 <div style="background: {color}; padding: 10px; border-radius: 6px; margin: 4px 0;">
                     <span style="color: {text_col};">{i}. {row['nama_kabkota']} - {row['persen_stunting']:.1f}%</span>
@@ -482,10 +481,10 @@ def main():
         
         with col2:
             st.markdown("**5 Prevalensi Terendah**")
-            bottom5 = df.nsmallest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'risk_level']]
+            bottom5 = df.nsmallest(5, 'persen_stunting')[['nama_kabkota', 'persen_stunting', 'tingkat_keparahan']]
             for i, (_, row) in enumerate(bottom5.iterrows(), 1):
-                color = RISK_COLORS.get(row['risk_level'], "#9E9E9E")
-                text_col = get_text_color(row['risk_level'])
+                color = RISK_COLORS.get(row['tingkat_keparahan'], "#9E9E9E")
+                text_col = get_text_color(row['tingkat_keparahan'])
                 st.markdown(f"""
                 <div style="background: {color}; padding: 10px; border-radius: 6px; margin: 4px 0;">
                     <span style="color: {text_col};">{i}. {row['nama_kabkota']} - {row['persen_stunting']:.1f}%</span>
@@ -663,7 +662,7 @@ def main():
         for i, pred in enumerate(selected_predictors[:4]):
             with cols[i % 2]:
                 # Filter valid data
-                plot_df = df[[pred, 'persen_stunting', 'nama_kabkota', 'risk_level']].dropna()
+                plot_df = df[[pred, 'persen_stunting', 'nama_kabkota', 'tingkat_keparahan']].dropna()
                 
                 if len(plot_df) > 2:
                     fig = px.scatter(
@@ -672,7 +671,7 @@ def main():
                         y='persen_stunting',
                         hover_name='nama_kabkota',
                         trendline='ols',
-                        color='risk_level',
+                        color='tingkat_keparahan',
                         color_discrete_map=RISK_COLORS,
                         labels={pred: PREDICTORS[pred]['label'], 'persen_stunting': 'Stunting (%)'}
                     )
@@ -706,12 +705,12 @@ def main():
         if search:
             df_display = df_display[df_display['nama_kabkota'].str.contains(search, case=False)]
         
-        cols_show = ['nama_kabkota', 'persen_stunting', 'jumlah_stunting', 'risk_level',
+        cols_show = ['nama_kabkota', 'persen_stunting', 'jumlah_stunting', 'tingkat_keparahan',
                      'kepadatan_penduduk', 'persen_air_minum_layak', 'persen_miskin', 
                      'persen_rumah_layak_huni']
         
         df_show = df_display[cols_show].sort_values('persen_stunting', ascending=False)
-        df_show.columns = ['Kab/Kota', 'Stunting (%)', 'Jml Stunting', 'Risiko',
+        df_show.columns = ['Kab/Kota', 'Stunting (%)', 'Jml Stunting', 'Keparahan',
                            'Kepadatan', 'Air Minum (%)', 'Miskin (%)', 'Rumah Layak (%)']
         
         st.dataframe(df_show, hide_index=True, height=400)
@@ -744,9 +743,9 @@ def main():
         | Rumah layak huni | Underlying cause | Victora et al. (2008) |
         | Kepadatan penduduk | Kontekstual | Smith & Ruel (2005) |
         
-        ### Kategori Risiko
+        ### Kategori Keparahan
         
-        Kategorisasi risiko mengacu pada **WHO (1995) Technical Report Series No. 854**:
+        Kategorisasi Tingkat Keparahan (populasi wilayah) mengacu pada **WHO (1995) Technical Report Series No. 854**:
         
         | Kategori | Prevalensi | Keterangan |
         |----------|------------|------------|
